@@ -3,11 +3,15 @@ package com.example.test_lab_week_12
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import com.example.test_lab_week_12.model.Movie
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), MovieAdapter.MovieClickListener {
 
@@ -33,14 +37,22 @@ class MainActivity : ComponentActivity(), MovieAdapter.MovieClickListener {
             }
         )[MovieViewModel::class.java]
 
-        // 🔹 SEMENTARA: tampilkan semua movie tanpa filter
-        movieViewModel.popularMovies.observe(this) { movies ->
-            movieAdapter.addMovies(movies)
-        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
 
-        movieViewModel.error.observe(this) { error ->
-            if (error.isNotEmpty()) {
-                Snackbar.make(recyclerView, error, Snackbar.LENGTH_LONG).show()
+                launch {
+                    movieViewModel.popularMovies.collect { movies ->
+                        movieAdapter.addMovies(movies)
+                    }
+                }
+
+                launch {
+                    movieViewModel.error.collect { errorMsg ->
+                        if (errorMsg.isNotEmpty()) {
+                            Snackbar.make(recyclerView, errorMsg, Snackbar.LENGTH_LONG).show()
+                        }
+                    }
+                }
             }
         }
     }
@@ -54,5 +66,4 @@ class MainActivity : ComponentActivity(), MovieAdapter.MovieClickListener {
         }
         startActivity(intent)
     }
-
 }
